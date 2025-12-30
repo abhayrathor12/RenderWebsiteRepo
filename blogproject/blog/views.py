@@ -146,15 +146,30 @@ from sib_api_v3_sdk import ApiClient, Configuration
 from sib_api_v3_sdk.api.transactional_emails_api import TransactionalEmailsApi
 from sib_api_v3_sdk.models import SendSmtpEmail
 import os
-
-
+import logging
+logger = logging.getLogger(__name__)
 def send_webinar_emails(registration):
+    logger.info("📧 send_webinar_emails() STARTED")
+
     try:
+        brevo_key = os.getenv("BREVO_API_KEY")
+        logger.info("🔑 BREVO_API_KEY FOUND: %s", bool(brevo_key))
+
+        if not brevo_key:
+            logger.error("❌ BREVO_API_KEY is missing")
+            return
+
         config = Configuration()
-        config.api_key["api-key"] = os.getenv("BREVO_API_KEY")
+        config.api_key["api-key"] = brevo_key
+
         api_client = ApiClient(config)
         api = TransactionalEmailsApi(api_client)
-        # ✅ Email to User
+
+        logger.info("🔌 Brevo client initialized")
+
+        # =========================
+        # EMAIL TO USER
+        # =========================
         user_email = SendSmtpEmail(
             sender={
                 "email": "workspace00018@gmail.com",
@@ -165,19 +180,15 @@ def send_webinar_emails(registration):
             html_content=f"""
             <p>Hello {registration.first_name},</p>
             <p>Thank you for registering for our webinar.</p>
-            <p>We have successfully received your registration.</p>
-            <p>Our team will share the webinar link with you soon.</p>
-            <br>
-            <p>
-            📞 +91-9999765380 / 0124-4424695<br>
-            🌐 <a href="https://technovizautomation.com">technovizautomation.com</a>
-            </p>
-            <br>
-            <p><b>Technoviz Automation</b></p>
             """
         )
-        api.send_transac_email(user_email)
-        # ✅ Email to Admin
+
+        user_response = api.send_transac_email(user_email)
+        logger.info("✅ User email sent. Brevo response: %s", user_response)
+
+        # =========================
+        # EMAIL TO ADMIN
+        # =========================
         admin_email = SendSmtpEmail(
             sender={
                 "email": "workspace00018@gmail.com",
@@ -187,15 +198,18 @@ def send_webinar_emails(registration):
             subject=f"📩 New Webinar Registration: {registration.first_name}",
             html_content=f"""
             <p><b>Name:</b> {registration.first_name} {registration.last_name}</p>
-            <p><b>Company:</b> {registration.company_name}</p>
             <p><b>Email:</b> {registration.email}</p>
-            <p><b>Phone:</b> {registration.phone}</p>
-            <p><b>Registered at:</b> {registration.created_at}</p>
             """
         )
-        api.send_transac_email(admin_email)
+
+        admin_response = api.send_transac_email(admin_email)
+        logger.info("✅ Admin email sent. Brevo response: %s", admin_response)
+
+        logger.info("🎉 send_webinar_emails() COMPLETED SUCCESSFULLY")
+
     except Exception as e:
-        print("❌ Brevo email failed:", str(e))
+        logger.exception("❌ Brevo email failed with exception")
+
 
 
 
