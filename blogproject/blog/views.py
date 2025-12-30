@@ -149,66 +149,62 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 def send_webinar_emails(registration):
-    logger.info("📧 send_webinar_emails() STARTED")
+    logger.info("📧 send_webinar_emails started for %s", registration.email)
 
     try:
-        brevo_key = os.getenv("BREVO_API_KEY")
-        logger.info("🔑 BREVO_API_KEY FOUND: %s", bool(brevo_key))
+        # ==========================
+        # Email to User
+        # ==========================
+        logger.info("📧 Sending user email")
 
-        if not brevo_key:
-            logger.error("❌ BREVO_API_KEY is missing")
-            return
-
-        config = Configuration()
-        config.api_key["api-key"] = brevo_key
-
-        api_client = ApiClient(config)
-        api = TransactionalEmailsApi(api_client)
-
-        logger.info("🔌 Brevo client initialized")
-
-        # =========================
-        # EMAIL TO USER
-        # =========================
-        user_email = SendSmtpEmail(
-            sender={
-                "email": "workspace00018@gmail.com",
-                "name": "Technoviz Automation"
-            },
-            to=[{"email": registration.email}],
+        send_mail(
             subject="🎉 Webinar Registration Successful | Technoviz Automation",
-            html_content=f"""
-            <p>Hello {registration.first_name},</p>
-            <p>Thank you for registering for our webinar.</p>
-            """
+            message=(
+                f"Hello {registration.first_name},\n\n"
+                "Thank you for registering for our webinar!\n\n"
+                "We have successfully received your registration. "
+                "Our team will share the webinar link with you soon.\n\n"
+                "📞 +91-9999765380 / 0124-4424695\n"
+                "📧 support@technovizautomation.com\n"
+                "🌐 https://technovizautomation.com\n\n"
+                "Best regards,\n"
+                "Technoviz Automation"
+            ),
+            from_email=None,  # uses DEFAULT_FROM_EMAIL
+            recipient_list=[registration.email],
+            fail_silently=False,
         )
 
-        user_response = api.send_transac_email(user_email)
-        logger.info("✅ User email sent. Brevo response: %s", user_response)
+        logger.info("✅ User email sent successfully")
 
-        # =========================
-        # EMAIL TO ADMIN
-        # =========================
-        admin_email = SendSmtpEmail(
-            sender={
-                "email": "workspace00018@gmail.com",
-                "name": "Technoviz Automation"
-            },
-            to=[{"email": "kkhurana@technovizautomation.com"}],
+        # ==========================
+        # Email to Admin
+        # ==========================
+        logger.info("📧 Sending admin email")
+
+        send_mail(
             subject=f"📩 New Webinar Registration: {registration.first_name}",
-            html_content=f"""
-            <p><b>Name:</b> {registration.first_name} {registration.last_name}</p>
-            <p><b>Email:</b> {registration.email}</p>
-            """
+            message=(
+                f"Name: {registration.first_name} {registration.last_name}\n"
+                f"Company: {registration.company_name}\n"
+                f"Email: {registration.email}\n"
+                f"Phone: {registration.phone}\n"
+                f"Registered at: {registration.created_at}"
+            ),
+            from_email=None,
+            recipient_list=["rathorabhay633@gmail.com"],
+            fail_silently=False,
         )
 
-        admin_response = api.send_transac_email(admin_email)
-        logger.info("✅ Admin email sent. Brevo response: %s", admin_response)
+        logger.info("✅ Admin email sent successfully")
+        logger.info("🎉 send_webinar_emails completed")
 
-        logger.info("🎉 send_webinar_emails() COMPLETED SUCCESSFULLY")
+    except BadHeaderError:
+        logger.error("❌ Bad header error while sending email")
 
-    except Exception as e:
-        logger.exception("❌ Brevo email failed with exception")
+    except Exception:
+        logger.exception("❌ Email sending failed with exception")
+
 
 
 
